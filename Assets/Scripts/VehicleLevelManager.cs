@@ -7,7 +7,7 @@ public class VehicleLevelManager : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         // Check if the object that enters the trigger is the vehicle
-        if (other.CompareTag("Vehicle"))
+        if (other.CompareTag("Player"))
         {
             // Level complete, load the next level
             LoadNextLevel();

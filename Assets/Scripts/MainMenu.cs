@@ -1,16 +1,26 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.IO;
-using System.Collections;
+using UnityEngine.UI;
 
 public class MainMenu : MonoBehaviour
 {
+    public Button playButton;  // Reference to the Play button
+    public Button loadButton;  // Reference to the Load button
+    public Button exitButton;  // Reference to the Exit button
+
     private string saveFilePath;
 
     void Start()
     {
-        // Set the save file path to the same location used for saving
-        saveFilePath = Path.Combine(Application.persistentDataPath, "savefile.txt");
+        // Set the save file path to a location on the player's computer
+        saveFilePath = Path.Combine(Application.persistentDataPath, "savefile.json");
+
+        // Add listeners for the buttons
+        if (playButton != null) playButton.onClick.AddListener(PlayGame);
+        if (loadButton != null) loadButton.onClick.AddListener(LoadGame);
+        if (exitButton != null) exitButton.onClick.AddListener(ExitGame);
     }
 
     // This method is called when the Play button is clicked
@@ -31,11 +41,10 @@ public class MainMenu : MonoBehaviour
             SaveData data = JsonUtility.FromJson<SaveData>(json);
 
             // Load the saved level from the saved data
-            string savedLevel = data.levelName;
-            if (!string.IsNullOrEmpty(savedLevel))
+            if (!string.IsNullOrEmpty(data.levelName))
             {
-                SceneManager.LoadScene(savedLevel);
-                StartCoroutine(LoadPlayerPosition(data.playerPosition)); // Load the player position after the level is loaded
+                SceneManager.LoadScene(data.levelName);
+                StartCoroutine(LoadPlayerPosition(data.playerPosition)); // Load player position after the scene is loaded
             }
             else
             {
@@ -48,11 +57,11 @@ public class MainMenu : MonoBehaviour
         }
     }
 
-    // Coroutine to load player position after the level is fully loaded
+    // Coroutine to wait until the level is fully loaded, then set the player position
     private IEnumerator LoadPlayerPosition(Vector3 position)
     {
-        yield return new WaitForSeconds(0.5f); // Wait for the scene to load
-        GameObject player = GameObject.Find("Player"); // Ensure your player GameObject is named "Player"
+        yield return new WaitForSeconds(0.5f); // Ensure the scene is loaded
+        GameObject player = GameObject.FindWithTag("Player"); // Find the player GameObject by tag
         if (player != null)
         {
             player.transform.position = position;
@@ -75,12 +84,12 @@ public class MainMenu : MonoBehaviour
     public void SaveGame(string currentLevel)
     {
         SaveData data = new SaveData();
-        data.levelName = currentLevel; // Save the current level name
+        data.levelName = currentLevel;
 
-        GameObject player = GameObject.Find("Player"); // Find your player GameObject
+        GameObject player = GameObject.FindWithTag("Player"); // Find your player GameObject by tag
         if (player != null)
         {
-            data.playerPosition = player.transform.position; // Save the player's current position
+            data.playerPosition = player.transform.position; // Save player's position
         }
         else
         {
@@ -96,10 +105,4 @@ public class MainMenu : MonoBehaviour
     }
 }
 
-// Class for saving game data
-[System.Serializable]
-public class SaveData
-{
-    public Vector3 playerPosition; // To save player's position
-    public string levelName; // To save the current level name
-}
+

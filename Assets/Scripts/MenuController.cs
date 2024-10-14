@@ -1,12 +1,19 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.IO;
-using UnityEngine.SceneManagement; // Make sure this is included
+using UnityEngine.SceneManagement;
+using System.Collections; // Make sure this is included for IEnumerator
 
 public class MenuController : MonoBehaviour
 {
-    public GameObject menuPanel;  // A panel containing the Resume, Save, and Exit buttons
-    public Button menuButton;     // The Menu button
+    public GameObject menuPanel;      // A panel containing the Resume, Save, and Exit buttons
+    public Button menuButton;         // The Menu button
+    public Button restartButton;      // The Restart button
+    public Button saveButton;         // The Save button
+    public Button exitButton;         // The Exit button
+    public Button loadButton;         // The Load button
+
+    private string saveFilePath;      // Path to save the game
 
     private bool isGamePaused = false;
 
@@ -15,8 +22,15 @@ public class MenuController : MonoBehaviour
         // Initially hide the menu panel
         menuPanel.SetActive(false);
 
-        // Add listeners for the Menu button to show the menu when clicked
-        menuButton.onClick.AddListener(ShowMenu);
+        // Set the save file path
+        saveFilePath = Path.Combine(Application.persistentDataPath, "savefile.json");
+
+        // Add listeners for the buttons
+        if (menuButton != null) menuButton.onClick.AddListener(ShowMenu);
+        if (restartButton != null) restartButton.onClick.AddListener(RestartGame);
+        if (saveButton != null) saveButton.onClick.AddListener(SaveGame);
+        if (exitButton != null) exitButton.onClick.AddListener(ExitGame);
+        if (loadButton != null) loadButton.onClick.AddListener(LoadGame); // Add listener for Load button
     }
 
     // Show the menu and pause the game
@@ -36,19 +50,90 @@ public class MenuController : MonoBehaviour
     // Called when the Save button is clicked
     public void SaveGame()
     {
-        // Call SaveGame from MainMenu
-        MainMenu mainMenu = FindObjectOfType<MainMenu>();
-        if (mainMenu != null)
+        SaveData data = new SaveData();
+        // Save the current scene name
+        data.levelName = SceneManager.GetActiveScene().name;
+
+        // Save player position (assuming there's a Player object tagged "Player")
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
         {
-            string currentLevel = SceneManager.GetActiveScene().name; // Get current level name
-            mainMenu.SaveGame(currentLevel); // Save game state
+            data.playerPosition = player.transform.position; // Save player's position
         }
+        else
+        {
+            Debug.Log("Player not found, cannot save position.");
+            return;
+        }
+
+        // Convert game data to JSON and save it to a file
+        string json = JsonUtility.ToJson(data);
+        File.WriteAllText(saveFilePath, json);
+
+        Debug.Log("Game saved to: " + saveFilePath);
+    }
+
+    // Called when the Load button is clicked
+    public void LoadGame()
+    {
+        // Check if the save file exists
+        if (File.Exists(saveFilePath))
+        {
+            // Read the saved data from the file
+            string json = File.ReadAllText(saveFilePath);
+            SaveData data = JsonUtility.FromJson<SaveData>(json);
+
+            // Load the saved level from the saved data
+            if (!string.IsNullOrEmpty(data.levelName))
+            {
+                SceneManager.LoadScene(data.levelName); // Load the saved level
+                StartCoroutine(LoadPlayerPositionAfterDelay(data.playerPosition)); // Load player position after the scene is loaded
+            }
+            else
+            {
+                Debug.Log("No saved level found.");
+            }
+        }
+        else
+        {
+            Debug.Log("No save file found.");
+        }
+    }
+
+    // Coroutine to wait until the level is fully loaded, then set the player position
+    private IEnumerator LoadPlayerPositionAfterDelay(Vector3 position)
+    {
+        yield return new WaitForSeconds(0.5f); // Delay to allow scene to load
+
+        // After the scene is loaded, place the player in the saved position
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            player.transform.position = position;
+            Debug.Log("Player position loaded: " + position);
+        }
+        else
+        {
+            Debug.Log("Player not found.");
+        }
+    }
+
+    // Called when the Restart button is clicked
+    public void RestartGame()
+    {
+        // Load the home scene
+        SceneManager.LoadScene("Home"); // Replace "Home" with your actual home scene name
     }
 
     // Called when the Exit button is clicked
     public void ExitGame()
     {
-        Application.Quit();
+        // Quit the game
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false; // Stop the editor
+#else
+        Application.Quit(); // Quit the application
+#endif
         Debug.Log("Game is exiting");
     }
 

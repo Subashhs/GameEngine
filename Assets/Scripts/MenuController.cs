@@ -2,7 +2,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.IO;
 using UnityEngine.SceneManagement;
-using System.Collections; // Make sure this is included for IEnumerator
+using System.Collections; // Include for IEnumerator
+
+
 
 public class MenuController : MonoBehaviour
 {
@@ -12,9 +14,9 @@ public class MenuController : MonoBehaviour
     public Button saveButton;         // The Save button
     public Button exitButton;         // The Exit button
     public Button loadButton;         // The Load button
+    public GameObject playerPrefab;   // Prefab for the player to instantiate if not found
 
     private string saveFilePath;      // Path to save the game
-
     private bool isGamePaused = false;
 
     void Start()
@@ -54,11 +56,12 @@ public class MenuController : MonoBehaviour
         // Save the current scene name
         data.levelName = SceneManager.GetActiveScene().name;
 
-        // Save player position (assuming there's a Player object tagged "Player")
+        // Save player position immediately
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
             data.playerPosition = player.transform.position; // Save player's position
+            Debug.Log("Saving Player position: " + data.playerPosition); // Debug log for position
         }
         else
         {
@@ -67,7 +70,7 @@ public class MenuController : MonoBehaviour
         }
 
         // Convert game data to JSON and save it to a file
-        string json = JsonUtility.ToJson(data);
+        string json = JsonUtility.ToJson(data, true); // Pretty print JSON for readability
         File.WriteAllText(saveFilePath, json);
 
         Debug.Log("Game saved to: " + saveFilePath);
@@ -109,12 +112,15 @@ public class MenuController : MonoBehaviour
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
-            player.transform.position = position;
-            Debug.Log("Player position loaded: " + position);
+            player.transform.position = position; // Set the saved position
+            Debug.Log("Player position loaded: " + position); // Debug log for loaded position
         }
         else
         {
-            Debug.Log("Player not found.");
+            // Instantiate player if not found
+            player = Instantiate(playerPrefab, position, Quaternion.identity);
+            player.tag = "Player"; // Ensure it has the Player tag
+            Debug.Log("Player instantiated at position: " + position);
         }
     }
 

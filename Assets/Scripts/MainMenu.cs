@@ -4,11 +4,14 @@ using UnityEngine.SceneManagement;
 using System.IO;
 using UnityEngine.UI;
 
+
+
 public class MainMenu : MonoBehaviour
 {
     public Button playButton;  // Reference to the Play button
     public Button loadButton;  // Reference to the Load button
     public Button exitButton;  // Reference to the Exit button
+    public GameObject playerPrefab; // Reference to the player prefab
 
     private string saveFilePath;
 
@@ -43,7 +46,7 @@ public class MainMenu : MonoBehaviour
             // Load the saved level from the saved data
             if (!string.IsNullOrEmpty(data.levelName))
             {
-                SceneManager.LoadScene(data.levelName);
+                SceneManager.LoadScene(data.levelName); // Load the saved level
                 StartCoroutine(LoadPlayerPosition(data.playerPosition)); // Load player position after the scene is loaded
             }
             else
@@ -62,14 +65,17 @@ public class MainMenu : MonoBehaviour
     {
         yield return new WaitForSeconds(0.5f); // Ensure the scene is loaded
         GameObject player = GameObject.FindWithTag("Player"); // Find the player GameObject by tag
-        if (player != null)
+        if (player == null)
         {
-            player.transform.position = position;
-            Debug.Log("Player position loaded: " + position);
+            // If the player object is not found, instantiate it
+            player = Instantiate(playerPrefab, position, Quaternion.identity);
+            player.tag = "Player"; // Ensure it has the Player tag
+            Debug.Log("Player instantiated at position: " + position);
         }
         else
         {
-            Debug.Log("Player not found.");
+            player.transform.position = position; // Set the player's position
+            Debug.Log("Player position loaded: " + position);
         }
     }
 
@@ -81,10 +87,13 @@ public class MainMenu : MonoBehaviour
     }
 
     // Method to save the current game state (level and player position)
-    public void SaveGame(string currentLevel)
+    public void SaveGame()
     {
-        SaveData data = new SaveData();
-        data.levelName = currentLevel;
+        string currentLevel = SceneManager.GetActiveScene().name; // Get the current scene name
+        SaveData data = new SaveData
+        {
+            levelName = currentLevel // Save the level name
+        };
 
         GameObject player = GameObject.FindWithTag("Player"); // Find your player GameObject by tag
         if (player != null)
@@ -104,5 +113,3 @@ public class MainMenu : MonoBehaviour
         Debug.Log("Game saved at level: " + currentLevel + " with position: " + data.playerPosition);
     }
 }
-
-
